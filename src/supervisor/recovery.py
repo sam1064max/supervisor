@@ -8,7 +8,8 @@ partial state update that includes ``error`` and the last exception.
 from __future__ import annotations
 
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from supervisor.logging_setup import get_logger
 
@@ -38,7 +39,7 @@ def with_retries(
                 retries[agent_name] = attempt
                 meta["retries"] = retries
                 return {**delta, "metadata": meta}
-            except Exception as exc:  # noqa: BLE001 - we want to log and decide
+            except Exception as exc:
                 last_exc = exc
                 logger.warning(
                     "agent.retry",

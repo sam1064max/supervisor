@@ -22,7 +22,6 @@ from supervisor.logging_setup import (
     timed,
 )
 from supervisor.providers import LLMProvider, build_provider
-from supervisor.state import AgentState
 
 logger = get_logger(__name__)
 
@@ -75,9 +74,7 @@ class Supervisor:
         with bind_request_context(request_id=request_id, trace_id=trace_id):
             return self._run_inner(query, request_id, trace_id)
 
-    def _run_inner(
-        self, query: str, request_id: str, trace_id: str
-    ) -> SupervisorResult:
+    def _run_inner(self, query: str, request_id: str, trace_id: str) -> SupervisorResult:
         started = time.perf_counter()
         initial: dict[str, Any] = {
             "query": query,
@@ -97,8 +94,8 @@ class Supervisor:
         }
         with timed(logger, "supervisor.run", query_length=len(query)):
             try:
-                final_state: dict[str, Any] = self._graph.invoke(initial)  # type: ignore[assignment]
-            except Exception as exc:  # noqa: BLE001
+                final_state: dict[str, Any] = self._graph.invoke(initial)
+            except Exception as exc:
                 logger.error(
                     "supervisor.crashed",
                     error_class=type(exc).__name__,

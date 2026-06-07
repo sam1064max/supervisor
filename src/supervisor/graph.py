@@ -24,8 +24,8 @@ from langgraph.types import Send
 from supervisor.agents import (
     make_analytics_agent,
     make_calculator_agent,
-    make_reviewer_agent,
     make_research_agent,
+    make_reviewer_agent,
     make_writer_agent,
 )
 from supervisor.config import Settings, get_settings
@@ -44,17 +44,15 @@ _UPSTREAM_AGENTS = ("research", "analytics", "calculator")
 def build_graph(
     provider: LLMProvider | None = None,
     settings: Settings | None = None,
-) -> CompiledStateGraph:
+) -> Any:  # langgraph's StateGraph/CompiledStateGraph generics are imperfect
     """Construct and compile the Supervisor graph."""
     settings = settings or get_settings()
     provider = provider or build_provider(settings)
 
-    builder: StateGraph = StateGraph(AgentState)
+    builder: Any = StateGraph(AgentState)
 
     builder.add_node("input_guardrail", input_guardrail)
-    builder.add_node(
-        "supervisor", make_supervisor_node(provider, settings)
-    )
+    builder.add_node("supervisor", make_supervisor_node(provider, settings))
     builder.add_node(
         "research",
         with_retries(
@@ -119,12 +117,12 @@ def build_graph(
     )
     builder.add_conditional_edges(
         "reviewer",
-        _after_reviewer,
+        _make_after_reviewer(settings),
         {"writer": "writer", "output_guardrail": "output_guardrail"},
     )
     builder.add_conditional_edges(
         "output_guardrail",
-        _after_output_guardrail,
+        _make_after_output_guardrail(settings),
         {"human_checkpoint": "human_checkpoint", END: END},
     )
     builder.add_conditional_edges(
@@ -136,7 +134,7 @@ def build_graph(
     return builder.compile()
 
 
-def _after_input_guardrail(state: dict[str, Any]) -> Literal["supervisor", "end"]:
+def _after_input_guardrail(state: dict[str, Any]) -> str:
     if state.get("error") == "input_rejected":
         return END
     return "supervisor"
@@ -166,27 +164,35 @@ def _after_writer(state: dict[str, Any]) -> Literal["reviewer", "output_guardrai
     return "output_guardrail"
 
 
-def _after_reviewer(state: dict[str, Any]) -> str:
-    settings = get_settings()
-    cycle = int(state.get("review_cycle", 0) or 0)
-    status = state.get("review_status", "pending")
-    if status == "sufficient":
-        return "output_guardrail"
-    if cycle >= settings.max_review_cycles:
-        logger.warning(
-            "review.forced_complete", cycle=cycle, max=settings.max_review_cycles
-        )
-        return "output_guardrail"
-    return "writer"
+def _make_after_reviewer(settings: Settings) -> Any:
+    def _after_reviewer(state: dict[str, Any]) -> str:
+        if state.get("error") == "reviewer_failed":
+            return "output_guardrail"
+        cycle = int(state.get("review_cycle", 0) or 0)
+        status = state.get("review_status", "pending")
+        if status == "sufficient":
+            return "output_guardrail"
+        if cycle >= settings.max_review_cycles:
+            logger.warning(
+                "review.forced_complete",
+                cycle=cycle,
+                max=settings.max_review_cycles,
+            )
+            return "output_guardrail"
+        return "writer"
+
+    return _after_reviewer
 
 
-def _after_output_guardrail(state: dict[str, Any]) -> str:
-    settings = get_settings()
-    if state.get("error") == "output_rejected":
+def _make_after_output_guardrail(settings: Settings) -> Any:
+    def _after_output_guardrail(state: dict[str, Any]) -> str:
+        if state.get("error") == "output_rejected":
+            return END
+        if settings.human_review_enabled:
+            return "human_checkpoint"
         return END
-    if settings.human_review_enabled:
-        return "human_checkpoint"
-    return END
+
+    return _after_output_guardrail
 
 
 def _after_human(state: dict[str, Any]) -> str:

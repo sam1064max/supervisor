@@ -12,8 +12,8 @@ from supervisor._version import __version__
 from supervisor.runner import Supervisor, SupervisorResult, run_supervisor
 
 __all__ = [
-    "__version__",
     "Supervisor",
     "SupervisorResult",
+    "__version__",
     "run_supervisor",
 ]

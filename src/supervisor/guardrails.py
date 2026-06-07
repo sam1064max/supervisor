@@ -78,7 +78,5 @@ def _evaluate_output(answer: Any) -> GuardrailVerdict:
     if not isinstance(answer, str) or not answer.strip():
         return GuardrailVerdict(allowed=False, reason="empty final answer")
     if len(answer) > MAX_ANSWER_LENGTH:
-        return GuardrailVerdict(
-            allowed=False, reason="final answer exceeds length limit"
-        )
+        return GuardrailVerdict(allowed=False, reason="final answer exceeds length limit")
     return GuardrailVerdict(allowed=True, reason="ok")

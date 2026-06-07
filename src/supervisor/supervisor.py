@@ -44,9 +44,7 @@ Rules:
 Return a SupervisorDecision JSON object."""
 
 
-def make_supervisor_node(
-    provider: LLMProvider, settings: Settings | None = None
-) -> Any:
+def make_supervisor_node(provider: LLMProvider, settings: Settings | None = None) -> Any:
     """Build the Supervisor node function for the graph."""
     settings = settings or get_settings()
 
@@ -75,9 +73,7 @@ def make_supervisor_node(
     return supervisor_node
 
 
-def plan_decision(
-    query: str, provider: LLMProvider, settings: Settings
-) -> SupervisorDecision:
+def plan_decision(query: str, provider: LLMProvider, settings: Settings) -> SupervisorDecision:
     """Produce a :class:`SupervisorDecision` for the given query.
 
     Falls back to a deterministic heuristic router if the provider fails.
@@ -88,7 +84,7 @@ def plan_decision(
     ]
     try:
         result = provider.complete(messages, response_model=SupervisorDecision)
-    except Exception as exc:  # noqa: BLE001 - we want to log and fall back
+    except Exception as exc:
         logger.warning(
             "supervisor.provider_error",
             error_class=type(exc).__name__,
@@ -128,11 +124,13 @@ def _validate_decision(decision: SupervisorDecision, settings: Settings) -> None
 def _heuristic_plan(query: str) -> SupervisorDecision:
     """Deterministic fallback when the provider is unavailable or invalid."""
     q = query.lower()
-    has_math = any(ch in q for ch in "+-*/%^") and any(ch.isdigit() for ch in q)
+    has_math = (
+        any(ch in q for ch in "+-*/%^")
+        or any(tok in q.split() for tok in ("x", "×", "into", "times", "multiplied"))
+    ) and any(ch.isdigit() for ch in q)
     is_simple_math = has_math and len(q.split()) < 12
     is_complex = len(q.split()) > 20 or any(
-        kw in q
-        for kw in ("report", "analyze", "analysis", "earnings", "comprehensive")
+        kw in q for kw in ("report", "analyze", "analysis", "earnings", "comprehensive")
     )
     if is_simple_math:
         return SupervisorDecision(
@@ -163,19 +161,24 @@ def _looks_substantial(query: str, decision: SupervisorDecision) -> bool:
 
 
 # Matches the first arithmetic expression in a natural-language query.
-_EXPRESSION_RE = re.compile(
-    r"[+\-*/%^()0-9.\s]+(?:pi|e|sqrt|log|sin|cos|tan|abs|min|max|sum|round)*"
-)
+# Requires at least one digit, one operator, and one more digit.
+_EXPRESSION_RE = re.compile(r"\d+(?:\s*[+\-*/%^x×]\s*\d+)+")
 
 
 def extract_expression(query: str) -> str | None:
-    """Extract the first plausible arithmetic expression from a query."""
+    """Extract the first plausible arithmetic expression from a query.
+
+    Recognises the operators ``+``, ``-``, ``*``, ``/``, ``%``, ``^``,
+    ``x`` and the unicode multiplication sign.  # noqa: RUF002
+
+    The ``x`` and unicode forms are normalised to ``*`` so the result is
+    valid Python and can be passed to :func:`safe_eval`.  # noqa: RUF002
+
+    Returns the matched substring stripped, or ``None`` if no plausible
+    expression is present.
+    """
     match = _EXPRESSION_RE.search(query)
     if not match:
         return None
-    expr = match.group(0).strip()
-    if any(ch.isdigit() for ch in expr) and any(
-        op in expr for op in "+-*/%^"
-    ):
-        return expr
-    return None
+    expr = match.group(0).strip().replace("×", "*")
+    return re.sub(r"\s+x\s+", " * ", expr)

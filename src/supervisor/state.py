@@ -20,6 +20,11 @@ from supervisor.decisions import (
 ReviewStatus = Literal["pending", "sufficient", "forced_complete"]
 
 
+def merge_dicts(left: dict[str, Any], right: dict[str, Any]) -> dict[str, Any]:
+    """Merge two metadata dicts. ``right`` wins on key conflict."""
+    return {**left, **right}
+
+
 class AgentState(TypedDict, total=False):
     """Mutable state passed through the graph.
 
@@ -59,5 +64,5 @@ class AgentState(TypedDict, total=False):
     # Telemetry
     started_at: float
     completed_at: float
-    metadata: dict[str, Any]
+    metadata: Annotated[dict[str, Any], merge_dicts]
     error: str | None

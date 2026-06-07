@@ -8,7 +8,8 @@ the LLM provider can be injected at graph-build time.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from supervisor.decisions import (
     AnalyticsResult,
@@ -38,9 +39,7 @@ def make_research_agent(provider: LLMProvider) -> AgentFn:
         ]
         result = provider.complete(messages, response_model=ResearchResult)
         if not isinstance(result, ResearchResult):
-            raise TypeError(
-                f"research agent expected ResearchResult, got {type(result).__name__}"
-            )
+            raise TypeError(f"research agent expected ResearchResult, got {type(result).__name__}")
         logger.info(
             "agent.research.completed",
             findings=len(result.findings),
@@ -60,9 +59,7 @@ def make_analytics_agent(provider: LLMProvider) -> AgentFn:
     def agent(state: dict[str, Any]) -> dict[str, Any]:
         research = state.get("research_results", [])
         query = state.get("query", "")
-        context = "\n".join(
-            f"- {f}" for r in research for f in r.findings  # type: ignore[union-attr]
-        )
+        context = "\n".join(f"- {f}" for r in research for f in r.findings)
         messages = [
             {"role": "system", "content": ANALYTICS_SYSTEM_PROMPT},
             {
@@ -94,16 +91,14 @@ def make_calculator_agent(provider: LLMProvider) -> AgentFn:
     """
 
     def agent(state: dict[str, Any]) -> dict[str, Any]:
-        del provider  # arithmetic is deterministic
+        _ = provider  # arithmetic is deterministic; provider not used
         query = state.get("query", "")
         expression = extract_expression(query)
         if expression is None:
             raise ValueError("calculator: no arithmetic expression found in query")
         value = safe_eval(expression)
         result = CalculationResult(expression=expression, value=float(value))
-        logger.info(
-            "agent.calculator.completed", expression=expression, value=value
-        )
+        logger.info("agent.calculator.completed", expression=expression, value=value)
         return {
             "calculation_results": [result],
             "completed_agents": ["calculator"],
@@ -122,9 +117,7 @@ def make_writer_agent(provider: LLMProvider) -> AgentFn:
         ]
         result = provider.complete(messages, response_model=DraftReport)
         if not isinstance(result, DraftReport):
-            raise TypeError(
-                f"writer agent expected DraftReport, got {type(result).__name__}"
-            )
+            raise TypeError(f"writer agent expected DraftReport, got {type(result).__name__}")
         logger.info(
             "agent.writer.completed",
             title=result.title,
@@ -133,6 +126,8 @@ def make_writer_agent(provider: LLMProvider) -> AgentFn:
         )
         return {
             "report": result.body,
+            "final_answer": result.body,
+            "completed_agents": ["writer"],
             "metadata": {"last_draft_title": result.title},
         }
 
@@ -159,9 +154,7 @@ def make_reviewer_agent(provider: LLMProvider) -> AgentFn:
         ]
         result = provider.complete(messages, response_model=ReviewResult)
         if not isinstance(result, ReviewResult):
-            raise TypeError(
-                f"reviewer agent expected ReviewResult, got {type(result).__name__}"
-            )
+            raise TypeError(f"reviewer agent expected ReviewResult, got {type(result).__name__}")
         new_cycle = cycle + 1
         status: str = "sufficient" if result.is_sufficient else "pending"
         logger.info(
@@ -175,6 +168,7 @@ def make_reviewer_agent(provider: LLMProvider) -> AgentFn:
             "review_result": result,
             "review_cycle": new_cycle,
             "review_status": status,
+            "completed_agents": ["reviewer"],
         }
 
     return agent
@@ -237,11 +231,7 @@ def _format_writer_input(state: dict[str, Any]) -> str:
     if calcs:
         parts.append("Calculation results:")
         for c in calcs:
-            parts.append(
-                f"  - {getattr(c, 'expression', '?')} = {getattr(c, 'value', '?')}"
-            )
+            parts.append(f"  - {getattr(c, 'expression', '?')} = {getattr(c, 'value', '?')}")
     if state.get("review_feedback"):
-        parts.append(
-            f"Reviewer feedback to address: {state['review_feedback']}"
-        )
+        parts.append(f"Reviewer feedback to address: {state['review_feedback']}")
     return "\n".join(parts)

@@ -48,8 +48,7 @@ class LLMProvider(Protocol):
         response_model: type[BaseModel] | None = None,
         temperature: float = 0.0,
         max_tokens: int = 1024,
-    ) -> str | BaseModel:
-        ...
+    ) -> str | BaseModel: ...
 
 
 # ----------------------------------------------------------------------
@@ -102,8 +101,7 @@ class FakeProvider:
         if isinstance(raw, response_model):
             return raw
         if isinstance(raw, BaseModel):
-            # Different Pydantic model or wrong type; try to coerce.
-            return response_model.model_validate(raw.model_dump())
+            return raw
         if isinstance(raw, dict):
             return response_model.model_validate(raw)
         if isinstance(raw, str):
@@ -124,9 +122,7 @@ class OpenAIProvider:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         if not settings.llm_api_key:
-            raise ProviderRefused(
-                "SUPERVISOR_LLM_API_KEY is required for the OpenAI provider."
-            )
+            raise ProviderRefused("SUPERVISOR_LLM_API_KEY is required for the OpenAI provider.")
         self._base_url = settings.llm_base_url or "https://api.openai.com/v1"
         self._client = httpx.Client(
             base_url=self._base_url,
@@ -164,14 +160,13 @@ class OpenAIProvider:
         if response.status_code >= 500:
             raise ProviderUnavailable(f"openai 5xx: {response.status_code}")
         if response.status_code >= 400:
-            raise ProviderRefused(
-                f"openai 4xx: {response.status_code} {response.text[:200]}"
-            )
+            raise ProviderRefused(f"openai 4xx: {response.status_code} {response.text[:200]}")
         data = response.json()
-        content = data["choices"][0]["message"]["content"]
+        content: str = data["choices"][0]["message"]["content"]
         if response_model is None:
             return content
-        return response_model.model_validate_json(content)
+        parsed: BaseModel = response_model.model_validate_json(content)
+        return parsed
 
     def close(self) -> None:
         self._client.close()
@@ -188,9 +183,7 @@ class AnthropicProvider:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         if not settings.llm_api_key:
-            raise ProviderRefused(
-                "SUPERVISOR_LLM_API_KEY is required for the Anthropic provider."
-            )
+            raise ProviderRefused("SUPERVISOR_LLM_API_KEY is required for the Anthropic provider.")
         self._base_url = settings.llm_base_url or "https://api.anthropic.com/v1"
         self._client = httpx.Client(
             base_url=self._base_url,
@@ -212,9 +205,7 @@ class AnthropicProvider:
     ) -> str | BaseModel:
         system_parts = [m["content"] for m in messages if m["role"] == "system"]
         user_parts = [
-            {"role": m["role"], "content": m["content"]}
-            for m in messages
-            if m["role"] != "system"
+            {"role": m["role"], "content": m["content"]} for m in messages if m["role"] != "system"
         ]
         payload: dict[str, Any] = {
             "model": self._settings.llm_model,
@@ -238,9 +229,7 @@ class AnthropicProvider:
         if response.status_code >= 500:
             raise ProviderUnavailable(f"anthropic 5xx: {response.status_code}")
         if response.status_code >= 400:
-            raise ProviderRefused(
-                f"anthropic 4xx: {response.status_code} {response.text[:200]}"
-            )
+            raise ProviderRefused(f"anthropic 4xx: {response.status_code} {response.text[:200]}")
         data = response.json()
         if response_model is None:
             return "".join(
@@ -251,9 +240,7 @@ class AnthropicProvider:
         for block in data.get("content", []):
             if block.get("type") == "tool_use":
                 return response_model.model_validate(block["input"])
-        raise ProviderRefused(
-            "anthropic did not return a tool_use block for structured output."
-        )
+        raise ProviderRefused("anthropic did not return a tool_use block for structured output.")
 
     def close(self) -> None:
         self._client.close()
@@ -267,9 +254,7 @@ class AnthropicProvider:
 def build_provider(settings: Settings | None = None) -> LLMProvider:
     """Construct the configured provider."""
     settings = settings or get_settings()
-    logger.info(
-        "provider.build", provider=settings.llm_provider, model=settings.llm_model
-    )
+    logger.info("provider.build", provider=settings.llm_provider, model=settings.llm_model)
     if settings.llm_provider == "fake":
         return FakeProvider()
     if settings.llm_provider == "openai":
