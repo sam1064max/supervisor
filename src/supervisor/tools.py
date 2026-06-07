@@ -11,7 +11,8 @@ from __future__ import annotations
 import ast
 import math
 import operator
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 
 class UnsafeExpressionError(ValueError):
@@ -78,22 +79,16 @@ def _eval_node(node: ast.AST) -> float:
     if isinstance(node, ast.BinOp):
         op = _BIN_OPS.get(type(node.op))
         if op is None:
-            raise UnsafeExpressionError(
-                f"unsupported operator: {type(node.op).__name__}"
-            )
+            raise UnsafeExpressionError(f"unsupported operator: {type(node.op).__name__}")
         return float(op(_eval_node(node.left), _eval_node(node.right)))
     if isinstance(node, ast.UnaryOp):
         unary_op = _UNARY_OPS.get(type(node.op))
         if unary_op is None:
-            raise UnsafeExpressionError(
-                f"unsupported unary op: {type(node.op).__name__}"
-            )
+            raise UnsafeExpressionError(f"unsupported unary op: {type(node.op).__name__}")
         return float(unary_op(_eval_node(node.operand)))
     if isinstance(node, ast.Call):
         if not isinstance(node.func, ast.Name) or node.func.id not in _FUNCS:
-            raise UnsafeExpressionError(
-                f"unsupported function call: {ast.dump(node.func)}"
-            )
+            raise UnsafeExpressionError(f"unsupported function call: {ast.dump(node.func)}")
         args = [_eval_node(arg) for arg in node.args]
         if node.keywords:
             raise UnsafeExpressionError("keyword arguments are not supported")

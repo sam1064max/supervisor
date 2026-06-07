@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-07
+
+### Fixed
+- Removed unused `CompiledStateGraph` import (`graph.py`).
+- Migrated `Callable` import to `collections.abc` (`tools.py`).
+- Normalised line-wrapping in `tools.py` to satisfy black.
+
 ## [0.1.0] - 2026-06-07
 
 ### Added
