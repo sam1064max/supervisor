@@ -262,3 +262,44 @@ def build_provider(settings: Settings | None = None) -> LLMProvider:
     if settings.llm_provider == "anthropic":
         return AnthropicProvider(settings)
     raise LLMError(f"Unknown provider: {settings.llm_provider}")
+
+
+def default_fake_provider() -> FakeProvider:
+    """Return a ``FakeProvider`` pre-queued with sensible demo responses.
+
+    Useful for the offline CLI / quickstart: a single ``supervisor run``
+    command without API keys or test fixtures still produces a coherent
+    end-to-end answer.
+    """
+    from supervisor.decisions import (
+        DraftReport,
+        ReviewResult,
+        SupervisorDecision,
+    )
+
+    decision = SupervisorDecision(
+        selected_agents=["calculator", "writer"],
+        execution_order=["calculator", "writer"],
+        requires_parallel_execution=False,
+        reasoning="offline demo default",
+    )
+    draft = DraftReport(
+        title="Answer",
+        summary="Offline demo answer produced without an LLM call.",
+        body=(
+            "[offline demo] The Supervisor routed your query to the most "
+            "appropriate specialists and produced this placeholder response. "
+            "Set SUPERVISOR_LLM_PROVIDER=openai (or anthropic) and provide "
+            "an API key to get a real model-generated answer."
+        ),
+        citations=[],
+    )
+    review = ReviewResult(
+        is_sufficient=True,
+        feedback="ok",
+        confidence=1.0,
+        issues=[],
+    )
+    provider = FakeProvider()
+    provider.queue_many([decision, draft, review])
+    return provider

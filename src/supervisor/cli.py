@@ -7,6 +7,7 @@ in the application code; the offline ``FakeProvider`` is the default.
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import typer
 from rich.console import Console
@@ -16,7 +17,7 @@ from rich.table import Table
 from supervisor.config import get_settings
 from supervisor.decisions import ALL_AGENT_NAMES
 from supervisor.logging_setup import configure_logging, get_logger
-from supervisor.providers import build_provider
+from supervisor.providers import build_provider, default_fake_provider
 from supervisor.runner import Supervisor
 from supervisor.supervisor import plan_decision
 
@@ -47,7 +48,10 @@ def run(
     """Run the Supervisor end-to-end on a single query."""
     settings = get_settings()
     configure_logging(settings)
-    sup = Supervisor(settings=settings)
+    provider: Any = None
+    if settings.llm_provider == "fake":
+        provider = default_fake_provider()
+    sup = Supervisor(settings=settings, provider=provider)
     result = sup.run(query)
     if json_output:
         typer.echo(
