@@ -1,0 +1,24 @@
+# Reference configuration for the Supervisor agent.
+# The application does not read this file at runtime; it documents the keys
+# available via environment variables (see .env.example).
+
+env: development
+
+logging:
+  level: INFO
+  format: json       # json | console
+  trace_enabled: true
+
+llm:
+  provider: fake       # fake | openai | anthropic
+  model: gpt-4o-mini
+  timeout_s: 30
+  max_retries: 2
+  base_url: null
+  api_key: null
+
+orchestration:
+  max_review_cycles: 3
+  agent_max_retries: 2
+  human_review_enabled: false
+  max_parallel_agents: 4

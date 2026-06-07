@@ -1,0 +1,27 @@
+services:
+  supervisor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: supervisor:dev
+    container_name: supervisor
+    env_file:
+      - .env
+    environment:
+      SUPERVISOR_ENV: production
+      SUPERVISOR_LOG_FORMAT: json
+      SUPERVISOR_LLM_PROVIDER: ${SUPERVISOR_LLM_PROVIDER:-fake}
+    volumes:
+      - supervisor-logs:/app/logs
+      - supervisor-config:/app/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import supervisor; print('ok')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  supervisor-logs:
+  supervisor-config:
