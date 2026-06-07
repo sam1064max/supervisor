@@ -3,6 +3,11 @@
 > A production-grade reference implementation of the **Supervisor Pattern** for
 > multi-agent LLM systems, built on [LangGraph](https://langchain-ai.github.io/langgraph/).
 
+[![CI](https://github.com/sam1064max/supervisor/actions/workflows/ci.yml/badge.svg)](https://github.com/sam1064max/supervisor/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Coverage 96%](https://img.shields.io/badge/coverage-96%25-brightgreen.svg)](pyproject.toml)
+
 The Supervisor coordinates specialist agents. It does not answer user questions.
 It routes, orders, parallelises, retries, reflects, and approves. Like an
 engineering manager, not a doer.
@@ -258,13 +263,15 @@ shipping.
 
 ## Benchmarks
 
-Anecdotal numbers on a developer laptop, fake provider:
-
-| Scenario | Wall time | Tokens | Notes |
-|---|---|---|---|
-| Pure math (`17 * 32`) | ~50 ms | 0 | No LLM call |
-| Single research + write | ~120 ms | ~250 | Fake LLM mock |
-| Research + analytics + calc + write + review | ~250 ms | ~900 | Fake LLM mock |
+```text
+$ uv run python examples/benchmark.py
+'What is 17 x 32?'                             reported=   8.37ms  wall=  50.20ms
+'Compute 100 / 4'                              reported=   5.15ms  wall=  43.08ms
+'Research solar vs wind'                       reported= 156.13ms  wall= 183.78ms
+'Explain transformer attention'                reported= 157.63ms  wall= 185.97ms
+'What is 2 to the power of 10?'                reported= 156.45ms  wall= 186.52ms
+median=183.8ms  p95=186.0ms  max=186.5ms
+```
 
 Real-model latencies are dominated by the LLM. With a 1k-token draft, expect
 ~2-4s end-to-end on GPT-4o-mini or Claude Haiku.
@@ -297,7 +304,7 @@ your CI/secret store for shared environments.
 
 ## Status
 
-`v0.1.0` - public reference implementation. See
+`v0.2.0` - public reference implementation. See
 [`CHANGELOG.md`](CHANGELOG.md) and [`docs/Roadmap.md`](docs/Roadmap.md).
 
 ## License
