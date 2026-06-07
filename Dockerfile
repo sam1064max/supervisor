@@ -23,7 +23,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir "uv>=0.5,<1.0"
 WORKDIR /build
-COPY pyproject.toml uv.lock* ./
+# Copy metadata + license files first so the build backend (hatchling)
+# can resolve them when uv sync installs the local project.
+COPY pyproject.toml uv.lock* README.md LICENSE ./
 COPY src ./src
 RUN uv sync --frozen --no-dev || uv sync --no-dev
 RUN uv pip install --no-deps --no-cache-dir .

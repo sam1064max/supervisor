@@ -29,13 +29,14 @@ test_outputs
 .artifacts
 docs
 tests
+examples
+scripts
+config
 Makefile
 docker-compose.yml
 Dockerfile
 .dockerignore
-README.md
 CHANGELOG.md
-LICENSE
 .pyre
 .plato
 .nox
