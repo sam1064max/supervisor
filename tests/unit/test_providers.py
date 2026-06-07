@@ -9,7 +9,12 @@ import pytest
 import respx
 
 from supervisor.config import Settings
-from supervisor.decisions import ResearchResult, SupervisorDecision
+from supervisor.decisions import (
+    DraftReport,
+    ResearchResult,
+    ReviewResult,
+    SupervisorDecision,
+)
 from supervisor.providers import (
     AnthropicProvider,
     FakeProvider,
@@ -263,26 +268,18 @@ class TestAnthropicProvider:
 
 class TestDefaultFakeProvider:
     def test_seeds_decision_draft_and_review(self) -> None:
-        from supervisor.decisions import DraftReport, ReviewResult, SupervisorDecision
-
         p = default_fake_provider()
         assert p.remaining() == 3
 
-        decision = p.complete(
-            [{"role": "user", "content": "x"}], response_model=SupervisorDecision
-        )
+        decision = p.complete([{"role": "user", "content": "x"}], response_model=SupervisorDecision)
         assert isinstance(decision, SupervisorDecision)
         assert decision.selected_agents
 
-        draft = p.complete(
-            [{"role": "user", "content": "x"}], response_model=DraftReport
-        )
+        draft = p.complete([{"role": "user", "content": "x"}], response_model=DraftReport)
         assert isinstance(draft, DraftReport)
         assert draft.title
 
-        review = p.complete(
-            [{"role": "user", "content": "x"}], response_model=ReviewResult
-        )
+        review = p.complete([{"role": "user", "content": "x"}], response_model=ReviewResult)
         assert isinstance(review, ReviewResult)
         assert review.is_sufficient is True
         assert p.remaining() == 0

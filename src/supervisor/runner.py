@@ -21,7 +21,7 @@ from supervisor.logging_setup import (
     new_trace_id,
     timed,
 )
-from supervisor.providers import LLMProvider, build_provider
+from supervisor.providers import FakeProvider, LLMProvider, build_provider, default_fake_provider
 
 logger = get_logger(__name__)
 
@@ -50,8 +50,29 @@ class Supervisor:
     ) -> None:
         self._settings = settings or get_settings()
         configure_logging(self._settings)
-        self._provider = provider or build_provider(self._settings)
+        if provider is not None:
+            self._provider = provider
+        else:
+            self._provider = self._resolve_provider()
         self._graph = build_graph(self._provider, self._settings)
+
+    def _resolve_provider(self) -> LLMProvider:
+        """Pick a provider, defaulting the offline ``fake`` to a seeded one.
+
+        ``build_provider`` is the single seam test code monkeypatches, so
+        we keep that path even for the fake provider and post-process the
+        result to inject demo responses when the factory returned a bare
+        ``FakeProvider``.
+        """
+        provider = build_provider(self._settings)
+        if (
+            self._settings.llm_provider == "fake"
+            and isinstance(provider, FakeProvider)
+            and not provider.remaining()
+        ):
+            seeded = default_fake_provider()
+            provider.queue_many(list(seeded._responses))
+        return provider
 
     @property
     def settings(self) -> Settings:

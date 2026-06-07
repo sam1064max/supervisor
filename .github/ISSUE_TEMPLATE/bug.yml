@@ -1,0 +1,37 @@
+name: Bug report
+about: Report something broken
+title: "[bug] "
+labels: ["bug", "triage"]
+assignees: []
+---
+
+## What happened
+
+<!-- A short description. -->
+
+## Reproduction
+
+```python
+# Minimal code that triggers the bug.
+```
+
+## Expected
+
+<!-- What you expected to see. -->
+
+## Actual
+
+<!-- What you actually saw. -->
+
+## Environment
+
+- OS:
+- Python:
+- `uv run supervisor --version`:
+- Provider / model:
+
+## Logs
+
+```
+# Paste relevant log lines.
+```

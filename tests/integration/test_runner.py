@@ -98,3 +98,18 @@ class TestRunnerObservation:
         sup = Supervisor(settings=test_settings, provider=provider)
         result = sup.run("x")
         assert result.duration_ms >= 0
+
+
+class TestRunnerOfflineDefaults:
+    def test_fake_provider_auto_seeds_when_no_provider_given(self, test_settings: Settings) -> None:
+        test_settings.llm_provider = "fake"
+        sup = Supervisor(settings=test_settings)
+        assert sup.provider is not None
+        result = sup.run("What is 2 * 2?")
+        assert result.error is None or "no arithmetic" not in (result.rejection_reason or "")
+
+    def test_default_fake_provider_works_end_to_end(self, test_settings: Settings) -> None:
+        test_settings.llm_provider = "fake"
+        result = run_supervisor("anything", settings=test_settings)
+        assert isinstance(result, SupervisorResult)
+        assert result.trace_id

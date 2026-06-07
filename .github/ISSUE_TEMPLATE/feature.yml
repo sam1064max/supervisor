@@ -1,0 +1,23 @@
+name: Feature request
+about: Propose a new feature
+title: "[feat] "
+labels: ["enhancement"]
+assignees: []
+---
+
+## Problem
+
+<!-- What is the user need? -->
+
+## Proposal
+
+<!-- How should the Supervisor change? -->
+
+## Alternatives
+
+<!-- What other approaches did you consider? -->
+
+## Impact
+
+- Affects: [ ] public API  [ ] internals  [ ] docs  [ ] CI
+- Backwards compatible: [ ] yes  [ ] no

@@ -271,7 +271,7 @@ def default_fake_provider() -> FakeProvider:
     command without API keys or test fixtures still produces a coherent
     end-to-end answer.
     """
-    from supervisor.decisions import (
+    from supervisor.decisions import (  # noqa: PLC0415 (deliberately local to avoid cycle)
         DraftReport,
         ReviewResult,
         SupervisorDecision,

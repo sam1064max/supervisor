@@ -162,17 +162,19 @@ def _looks_substantial(query: str, decision: SupervisorDecision) -> bool:
 
 # Matches the first arithmetic expression in a natural-language query.
 # Requires at least one digit, one operator, and one more digit.
-_EXPRESSION_RE = re.compile(r"\d+(?:\s*[+\-*/%^x×]\s*\d+)+")
+_EXPRESSION_RE = re.compile(r"\d+(?:\s*(?:\*\*|[+\-*/%^x×])\s*\d+)+")
 
 
 def extract_expression(query: str) -> str | None:
     """Extract the first plausible arithmetic expression from a query.
 
     Recognises the operators ``+``, ``-``, ``*``, ``/``, ``%``, ``^``,
-    ``x`` and the unicode multiplication sign.  # noqa: RUF002
+    ``x`` and the unicode multiplication sign, as well as Python's ``**``
+    power operator.  # noqa: RUF002
 
-    The ``x`` and unicode forms are normalised to ``*`` so the result is
-    valid Python and can be passed to :func:`safe_eval`.  # noqa: RUF002
+    The ``x`` and unicode forms are normalised to ``*`` and ``^`` to ``**``
+    so the result is valid Python and can be passed to :func:`safe_eval`.
+    # noqa: RUF002
 
     Returns the matched substring stripped, or ``None`` if no plausible
     expression is present.
@@ -180,5 +182,5 @@ def extract_expression(query: str) -> str | None:
     match = _EXPRESSION_RE.search(query)
     if not match:
         return None
-    expr = match.group(0).strip().replace("×", "*")
+    expr = match.group(0).strip().replace("×", "*").replace("^", "**")
     return re.sub(r"\s+x\s+", " * ", expr)

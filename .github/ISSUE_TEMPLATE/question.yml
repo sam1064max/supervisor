@@ -1,0 +1,10 @@
+name: Question
+about: Ask a question about the project
+title: "[q] "
+labels: ["question"]
+assignees: []
+---
+
+## What would you like to know?
+
+<!-- Be specific - link to docs / code as needed. -->
